@@ -3,7 +3,7 @@ import requests
 from datetime import datetime, timedelta
 from playwright.sync_api import sync_playwright
 
-# Mapeo de términos al español basados en tu captura anterior
+# Mapeo de términos al español basados en tu estructura original
 imprimir = print
 solicitudes = requests
 
@@ -16,8 +16,14 @@ def ejecutar_extractor():
     
     imprimir(f"Buscando registros desde {fecha_inicio} hasta {fecha_fin}...")
 
-    # URL del webhook real de tu aplicación en Lovable
-    url_webhook_lovable = "https://project--543227ce-de86-45d8-b9b6-969bc7396a1c.lovable.app/api/public/leads"
+    # URL pública de tu aplicación publicada en Lovable
+    url_webhook_lovable = "https://magia-de-extraer-nombres.lovable.app/api/public/leads"
+
+    # Encabezados de seguridad con tu clave API proporcionada
+    encabezados = {
+        "Content-Type": "application/json",
+        "x-ingest-api-key": "vqpYqSQI5g7YBMvrBZGszxfOWtuYNpwMVyfpNjeDU9V3x_4OrfElT2uVO1kQTMjP"
+    }
 
     with sync_playwright() as p:
         # Lanzar el navegador en modo headless
@@ -31,7 +37,7 @@ def ejecutar_extractor():
             pagina.wait_for_timeout(3000) # Esperar a que cargue la interfaz
             
             # --- EXTRACTOR DE DATOS ---
-            # Lista de leads extraídos reales tras aplicar el filtro en la web:
+            # Lista de leads de prueba para verificar la inyección inmediata en la base de datos segura:
             leads_extraidos = [
                 {
                     "nombre": "John Doe",
@@ -49,14 +55,14 @@ def ejecutar_extractor():
             
             imprimir(f"Se encontró {len(leads_extraidos)} registros nuevos.")
             
-            # Enviamos los datos directamente a tu panel de Lovable
+            # Enviamos los datos directamente a tu panel de Lovable con la clave de seguridad
             for dirigir in leads_extraidos:
                 try:
-                    respuesta = solicitudes.post(url_webhook_lovable, json=dirigir)
+                    respuesta = solicitudes.post(url_webhook_lovable, json=dirigir, headers=encabezados)
                     if respuesta.status_code in [200, 201]:
                         imprimir(f"Lead enviado con éxito a Lovable: {dirigir['nombre']}")
                     else:
-                        imprimir(f"Error al enviar lead: {respuesta.status_code}")
+                        imprimir(f"Error al enviar lead. Código de estado: {respuesta.status_code} - Detalle: {respuesta.text}")
                 except Exception as e:
                     imprimir(f"Error de conexión con Lovable: {e}")
                     
