@@ -30,17 +30,27 @@ def ejecutar_extractor():
             pagina.goto("https://www.hcad.org/property-search")
             pagina.wait_for_timeout(3000)
             
-            # DATOS DE PRUEBA CORREGIDOS (Sin user_id para que Lovable lo asigne automáticamente)
+            # DATOS DE PRUEBA CORREGIDOS: Se cambió "direccion" por "address"
             lista_leads = [
                 {
                     "first_name": "John",
                     "last_name": "Doe",
-                    "direccion": "713 Elm St",
+                    "address": "713 Elm St",
                     "city": "Houston",
                     "state": "TX",
                     "zip_code": "77002",
                     "condado": "Harris",
                     "fecha_registro": fecha_inicio
+                },
+                {
+                    "first_name": "Jane",
+                    "last_name": "Smith",
+                    "address": "405 Main St",
+                    "city": "Houston",
+                    "state": "TX",
+                    "zip_code": "77001",
+                    "condado": "Harris",
+                    "fecha_registro": fecha_fin
                 }
             ]
             
