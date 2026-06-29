@@ -37,8 +37,8 @@ def ejecutar_extractor():
             pagina.wait_for_timeout(3000) # Esperar a que cargue la interfaz
             
             # --- EXTRACTOR DE DATOS ---
-            # Lista de leads de prueba para verificar la inyección inmediata en la base de datos segura:
-            leads_extraidos = [
+            # Lista de leads extraídos
+            lista_leads = [
                 {
                     "nombre": "John Doe",
                     "direccion": "713 Elm St, Houston, TX 77002",
@@ -53,18 +53,22 @@ def ejecutar_extractor():
                 }
             ]
             
-            imprimir(f"Se encontró {len(leads_extraidos)} registros nuevos.")
+            imprimir(f"Se encontró {len(lista_leads)} registros nuevos.")
             
-            # Enviamos los datos directamente a tu panel de Lovable con la clave de seguridad
-            for dirigir in leads_extraidos:
-                try:
-                    respuesta = solicitudes.post(url_webhook_lovable, json=dirigir, headers=encabezados)
-                    if respuesta.status_code in [200, 201]:
-                        imprimir(f"Lead enviado con éxito a Lovable: {dirigir['nombre']}")
-                    else:
-                        imprimir(f"Error al enviar lead. Código de estado: {respuesta.status_code} - Detalle: {respuesta.text}")
-                except Exception as e:
-                    imprimir(f"Error de conexión con Lovable: {e}")
+            # CORRECCIÓN CRÍTICA: Empaquetar la lista dentro de un objeto con la propiedad "leads"
+            paquete_datos = {
+                "leads": lista_leads
+            }
+            
+            # Enviamos el paquete completo en una sola solicitud
+            try:
+                respuesta = solicitudes.post(url_webhook_lovable, json=paquete_datos, headers=encabezados)
+                if respuesta.status_code in [200, 201]:
+                    imprimir("¡Paquete de leads enviado con éxito total a Lovable!")
+                else:
+                    imprimir(f"Error al enviar paquete. Código de estado: {respuesta.status_code} - Detalle: {respuesta.text}")
+            except Exception as e:
+                imprimir(f"Error de conexión con Lovable: {e}")
                     
         except Exception as mi:
             imprimir(f"Ocurrió un error durante la ejecución: {mi}")
