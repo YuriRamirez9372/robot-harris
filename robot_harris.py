@@ -16,10 +16,10 @@ def ejecutar_extractor():
     
     imprimir(f"Buscando registros desde {fecha_inicio} hasta {fecha_fin}...")
 
-    # URL pública de tu aplicación publicada en Lovable
-    url_webhook_lovable = "https://magia-de-extraer-nombres.lovable.app/api/public/leads"
+    # URL CORRECTA Y OFICIAL DE TU PROYECTO PUBLICADO
+    url_webhook_lovable = "https://name-extract-magic.lovable.app/api/public/leads"
 
-    # Encabezados de seguridad con tu clave API proporcionada
+    # Encabezados de seguridad con tu clave API
     encabezados = {
         "Content-Type": "application/json",
         "x-ingest-api-key": "vqpYqSQI5g7YBMvrBZGszxfOWtuYNpwMVyfpNjeDU9V3x_4OrfElT2uVO1kQTMjP"
@@ -72,4 +72,5 @@ def ejecutar_extractor():
             navegador.close()
 
 if __name__ == "__main__":
+    ejecutar_extractor()
     ejecutar_extractor()
