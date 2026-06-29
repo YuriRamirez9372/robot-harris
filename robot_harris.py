@@ -37,17 +37,27 @@ def ejecutar_extractor():
             pagina.wait_for_timeout(3000) # Esperar a que cargue la interfaz
             
             # --- EXTRACTOR DE DATOS ---
-            # Lista de leads extraídos
+            # CORRECCIÓN: Leads con la estructura exacta y campos requeridos por tu base de datos
             lista_leads = [
                 {
-                    "nombre": "John Doe",
-                    "direccion": "713 Elm St, Houston, TX 77002",
+                    "user_id": "00000000-0000-0000-0000-000000000000", # ID temporal requerido por el sistema
+                    "first_name": "John",
+                    "last_name": "Doe",
+                    "direccion": "713 Elm St",
+                    "city": "Houston",
+                    "state": "TX",
+                    "zip_code": "77002",
                     "condado": "Harris",
                     "fecha_registro": fecha_inicio
                 },
                 {
-                    "nombre": "Jane Smith",
-                    "direccion": "405 Main St, Houston, TX 77001",
+                    "user_id": "00000000-0000-0000-0000-000000000000",
+                    "first_name": "Jane",
+                    "last_name": "Smith",
+                    "direccion": "405 Main St",
+                    "city": "Houston",
+                    "state": "TX",
+                    "zip_code": "77001",
                     "condado": "Harris",
                     "fecha_registro": fecha_fin
                 }
@@ -55,12 +65,12 @@ def ejecutar_extractor():
             
             imprimir(f"Se encontró {len(lista_leads)} registros nuevos.")
             
-            # CORRECCIÓN CRÍTICA: Empaquetar la lista dentro de un objeto con la propiedad "leads"
+            # Empaquetar la lista dentro del objeto "leads"
             paquete_datos = {
                 "leads": lista_leads
             }
             
-            # Enviamos el paquete completo en una sola solicitud
+            # Enviamos el paquete completo
             try:
                 respuesta = solicitudes.post(url_webhook_lovable, json=paquete_datos, headers=encabezados)
                 if respuesta.status_code in [200, 201]:
