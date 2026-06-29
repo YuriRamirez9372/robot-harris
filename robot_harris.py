@@ -3,44 +3,36 @@ import requests
 from datetime import datetime, timedelta
 from playwright.sync_api import sync_playwright
 
-# Mapeo de términos al español basados en tu estructura original
 imprimir = print
 solicitudes = requests
 
 def ejecutar_extractor():
     imprimir("Iniciando el robot de extracción para Harris County...")
     
-    # Configurar el rango de fechas de las últimas 2 semanas (14 días)
     fecha_inicio = (datetime.now() - timedelta(days=14)).strftime('%m/%d/%Y')
     fecha_fin = datetime.now().strftime('%m/%d/%Y')
     
     imprimir(f"Buscando registros desde {fecha_inicio} hasta {fecha_fin}...")
 
-    # URL ESTABLE RECOMENDADA POR LOVABLE PARA SCRIPTS EXTERNOS
     url_webhook_lovable = "https://project--543227ce-de86-45d8-b9b6-969bc7396a1c.lovable.app/api/public/leads"
 
-    # Encabezados de seguridad con tu clave API
     encabezados = {
         "Content-Type": "application/json",
         "x-ingest-api-key": "vqpYqSQI5g7YBMvrBZGszxfOWtuYNpwMVyfpNjeDU9V3x_4OrfElT2uVO1kQTMjP"
     }
 
     with sync_playwright() as p:
-        # Lanzar el navegador en modo headless
         navegador = p.chromium.launch(headless=True)
         contexto = navegador.new_context(user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
         pagina = contexto.new_page()
         
         try:
-            # Ir a la página oficial de búsqueda de propiedades de Harris County
             pagina.goto("https://www.hcad.org/property-search")
-            pagina.wait_for_timeout(3000) # Esperar a que cargue la interfaz
+            pagina.wait_for_timeout(3000)
             
-            # --- EXTRACTOR DE DATOS ---
-            # CORRECCIÓN: Leads con la estructura exacta y campos requeridos por tu base de datos
+            # DATOS DE PRUEBA CORREGIDOS (Sin user_id para que Lovable lo asigne automáticamente)
             lista_leads = [
                 {
-                    "user_id": "00000000-0000-0000-0000-000000000000", # ID temporal requerido por el sistema
                     "first_name": "John",
                     "last_name": "Doe",
                     "direccion": "713 Elm St",
@@ -49,28 +41,15 @@ def ejecutar_extractor():
                     "zip_code": "77002",
                     "condado": "Harris",
                     "fecha_registro": fecha_inicio
-                },
-                {
-                    "user_id": "00000000-0000-0000-0000-000000000000",
-                    "first_name": "Jane",
-                    "last_name": "Smith",
-                    "direccion": "405 Main St",
-                    "city": "Houston",
-                    "state": "TX",
-                    "zip_code": "77001",
-                    "condado": "Harris",
-                    "fecha_registro": fecha_fin
                 }
             ]
             
             imprimir(f"Se encontró {len(lista_leads)} registros nuevos.")
             
-            # Empaquetar la lista dentro del objeto "leads"
             paquete_datos = {
                 "leads": lista_leads
             }
             
-            # Enviamos el paquete completo
             try:
                 respuesta = solicitudes.post(url_webhook_lovable, json=paquete_datos, headers=encabezados)
                 if respuesta.status_code in [200, 201]:
