@@ -16,8 +16,8 @@ def ejecutar_extractor():
     
     imprimir(f"Buscando registros desde {fecha_inicio} hasta {fecha_fin}...")
 
-    # URL CORRECTA Y OFICIAL DE TU PROYECTO PUBLICADO
-    url_webhook_lovable = "https://name-extract-magic.lovable.app/api/public/leads"
+    # URL ESTABLE RECOMENDADA POR LOVABLE PARA SCRIPTS EXTERNOS
+    url_webhook_lovable = "https://project--543227ce-de86-45d8-b9b6-969bc7396a1c.lovable.app/api/public/leads"
 
     # Encabezados de seguridad con tu clave API
     encabezados = {
@@ -72,5 +72,4 @@ def ejecutar_extractor():
             navegador.close()
 
 if __name__ == "__main__":
-    ejecutar_extractor()
     ejecutar_extractor()
