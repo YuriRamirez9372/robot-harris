@@ -20,7 +20,7 @@ def ejecutar_extractor():
     
     cuenta_base = "114223001"
     rango_inicio = 1
-    rango_fin = 10  # Lote optimizado para asegurar la carga completa de cada página
+    rango_fin = 10
 
     with sync_playwright() as p:
         navegador = p.chromium.launch(headless=True)
@@ -40,16 +40,12 @@ def ejecutar_extractor():
                 
                 try:
                     pagina.goto(url_directa, wait_until="domcontentloaded", timeout=15000)
-                    
-                    # MANDATORIO: Esperar a que los elementos del perfil de la propiedad se dibujen en la pantalla
-                    # HCAD usa tablas o divs con identificadores de propiedad. Esperamos cualquier celda de datos.
                     pagina.wait_for_selector("td, th, .owner-name, div", timeout=6000)
-                    pagina.wait_for_timeout(2500) # Respiro extra para renderizado de la API interna
+                    pagina.wait_for_timeout(2500)
                     
                     nombre_propietario = ""
                     direccion_propiedad = ""
                     
-                    # Intentar múltiples selectores comunes por si el portal cambia de diseño según la resolución
                     for selector_nombre in ["th:has-text('Owner Name') + td", "td:has-text('Owner Name') + td", ".owner-name", "#lblOwner", "tr:has-text('Owner') td"]:
                         if pagina.locator(selector_nombre).count() > 0:
                             nombre_propietario = pagina.locator(selector_nombre).first.inner_text().strip()
@@ -89,14 +85,11 @@ def ejecutar_extractor():
         finally:
             navegador.close()
 
-    # Respaldo dinámico secundario modificado con nombres reales de prueba por si el firewall de HCAD bloquea la IP de Render
     if len(lista_leads_reales) == 0:
         imprimir("El portal HCAD bloqueó la conexión automática o está caído. Enviando lote de contingencia alternativo...")
         leads_contingencia = [
             {"nom": "John", "ape": "Doe", "dir": "1001 McKinney St"},
-            {"nom": "Robert", "ape": "Smith", "dir": "500 Dallas St"},
-            {"nom": "Maria", "ape": "Rodriguez", "dir": "901 Bagby St"},
-            {"nom": "William", "ape": "Jones", "dir": "1200 Louisiana St"}
+            {"nom": "Robert", "ape": "Smith", "dir": "500 Dallas St"}
         ]
         for idx, item in enumerate(leads_contingencia):
             lista_leads_reales.append({
@@ -115,11 +108,6 @@ def ejecutar_extractor():
         paquete_datos = {"leads": lista_leads_reales}
         respuesta = solicitudes.post(url_webhook_lovable, json=paquete_datos, headers=encabezados, timeout=20)
         imprimir(f"Respuesta final del servidor Lovable: {respuesta.status_code}")
-    except Exception as e:
-        imprimir(f"Falla de red al enviar: {e}")
-
-if __name__ == "__main__":
-    ejecutar_extractor()
     except Exception as e:
         imprimir(f"Falla de red al enviar: {e}")
 
