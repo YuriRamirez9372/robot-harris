@@ -18,8 +18,8 @@ def ejecutar_extractor():
         "x-ingest-api-key": "vqpYqSQI5g7YBMvrBZGszxfOWtuYNpwMVyfpNjeDU9V3x_4OrfElT2uVO1kQTMjP"
     }
 
-    # NOTA: Reemplaza esto con tu ID de usuario real de Lovable si el servidor exige uno específico
-    ID_USUARIO_PROVISIONAL = "user_id_default_string"
+    # TU ID REAL DE USUARIO (UUID VALIDADO)
+    ID_USUARIO_REAL = "e830958b-53fc-48f5-b8c8-55aafe0e880c"
 
     lista_leads_reales = []
     prefijo_bloque = "114-223-001"
@@ -58,7 +58,7 @@ def ejecutar_extractor():
                     if nombre_propietario and direccion_propiedad:
                         partes_nombre = nombre_propietario.split(" ")
                         lead = {
-                            "user_id": ID_USUARIO_PROVISIONAL,  # Campo obligatorio agregado
+                            "user_id": ID_USUARIO_REAL,
                             "first_name": partes_nombre[0].title(),
                             "last_name": " ".join(partes_nombre[1:]).title() if len(partes_nombre) > 1 else "Owner",
                             "address": direccion_propiedad,
@@ -74,12 +74,12 @@ def ejecutar_extractor():
         finally:
             navegador.close()
 
-    # --- LOTE DE CONTROL CON USER_ID ---
+    # --- LOTE DE CONTROL CON TU ID CORRECTO ---
     if len(lista_leads_reales) == 0:
         imprimir("Estructurando lote de control definitivo...")
         lista_leads_reales = [
             {
-                "user_id": ID_USUARIO_PROVISIONAL,  # Campo obligatorio agregado
+                "user_id": ID_USUARIO_REAL,
                 "first_name": "Albert",
                 "last_name": "Pena",
                 "address": "4301 San Jacinto St",
@@ -89,7 +89,7 @@ def ejecutar_extractor():
                 "condado": "Harris"
             },
             {
-                "user_id": ID_USUARIO_PROVISIONAL,  # Campo obligatorio agregado
+                "user_id": ID_USUARIO_REAL,
                 "first_name": "Diana",
                 "last_name": "Villarreal",
                 "address": "2200 Main St",
