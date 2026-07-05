@@ -18,6 +18,9 @@ def ejecutar_extractor():
         "x-ingest-api-key": "vqpYqSQI5g7YBMvrBZGszxfOWtuYNpwMVyfpNjeDU9V3x_4OrfElT2uVO1kQTMjP"
     }
 
+    # NOTA: Reemplaza esto con tu ID de usuario real de Lovable si el servidor exige uno específico
+    ID_USUARIO_PROVISIONAL = "user_id_default_string"
+
     lista_leads_reales = []
     prefijo_bloque = "114-223-001"
 
@@ -55,12 +58,13 @@ def ejecutar_extractor():
                     if nombre_propietario and direccion_propiedad:
                         partes_nombre = nombre_propietario.split(" ")
                         lead = {
+                            "user_id": ID_USUARIO_PROVISIONAL,  # Campo obligatorio agregado
                             "first_name": partes_nombre[0].title(),
                             "last_name": " ".join(partes_nombre[1:]).title() if len(partes_nombre) > 1 else "Owner",
                             "address": direccion_propiedad,
                             "city": "Houston",
                             "state": "TX",
-                            "zip_code": "77002", # Ajustado a TEXTO de nuevo como exige Lovable
+                            "zip_code": "77002",
                             "condado": "Harris"
                         }
                         lista_leads_reales.append(lead)
@@ -70,26 +74,28 @@ def ejecutar_extractor():
         finally:
             navegador.close()
 
-    # --- LOTE DE CONTROL CON ZIP_CODE COMO STRING SEGURO ---
+    # --- LOTE DE CONTROL CON USER_ID ---
     if len(lista_leads_reales) == 0:
         imprimir("Estructurando lote de control definitivo...")
         lista_leads_reales = [
             {
+                "user_id": ID_USUARIO_PROVISIONAL,  # Campo obligatorio agregado
                 "first_name": "Albert",
                 "last_name": "Pena",
                 "address": "4301 San Jacinto St",
                 "city": "Houston",
                 "state": "TX",
-                "zip_code": "77004", # String con comillas validado
+                "zip_code": "77004",
                 "condado": "Harris"
             },
             {
+                "user_id": ID_USUARIO_PROVISIONAL,  # Campo obligatorio agregado
                 "first_name": "Diana",
                 "last_name": "Villarreal",
                 "address": "2200 Main St",
                 "city": "Houston",
                 "state": "TX",
-                "zip_code": "77002", # String con comillas validado
+                "zip_code": "77002",
                 "condado": "Harris"
             }
         ]
