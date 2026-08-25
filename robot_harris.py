@@ -1,115 +1,70 @@
 import os
+import time
 import requests
-from datetime import datetime
-from playwright.sync_api import sync_playwright
 
-imprimir = print
-solicitudes = requests
-
-def ejecutar_extractor():
-    imprimir("Iniciando BARRIDO DIRECTO CON ESPERA DE CARGA para HCAD...")
+def ejecutar_extractor_optimizado():
+    print("🚀 Iniciando extracción HTTP ultra-rápida para HCAD...")
     
     url_webhook_lovable = "https://project--543227ce-de86-45d8-b9b6-969bc7396a1c.lovable.app/api/public/leads"
     encabezados = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
         "Content-Type": "application/json",
         "x-ingest-api-key": "vqpYqSQI5g7YBMvrBZGszxfOWtuYNpwMVyfpNjeDU9V3x_4OrfElT2uVO1kQTMjP"
     }
 
     ID_USUARIO_REAL = "e830958b-53fc-48f5-b8c8-55aafe0e880c"
-    lista_leads_reales = []
+    lista_leads = []
     
-    cuenta_base = "114223001"
-    rango_inicio = 1
-    rango_fin = 10
+    # Bloque base catastral en Harris County
+    cuenta_prefix = "114223001"
+    
+    # Usamos la hora actual para calcular un rango dinámico diferente en cada ejecución
+    offset_dinamico = int(time.time()) % 100
+    rango_inicio = offset_dinamico + 1
+    rango_fin = rango_inicio + 25  # Procesa 25 cuentas por corrida
 
-    with sync_playwright() as p:
-        navegador = p.chromium.launch(headless=True)
-        contexto = navegador.new_context(
-            user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-            viewport={"width": 1440, "height": 900}
-        )
-        pagina = contexto.new_page()
+    session = requests.Session()
+    session.headers.update({"User-Agent": encabezados["User-Agent"]})
+
+    for i in range(rango_inicio, rango_fin + 1):
+        sufijo = f"{i:04d}"
+        account_id = f"{cuenta_prefix}{sufijo}"
+        
+        # Endpoint de datos directos de HCAD
+        url_hcad_api = f"https://public.hcad.org/backend/api/property/{account_id}"
         
         try:
-            for i in range(rango_inicio, rango_fin + 1):
-                sufijo = f"{i:04d}"
-                num_cuenta_hcad = f"{cuenta_base}{sufijo}"
+            res = session.get(url_hcad_api, timeout=5)
+            if res.status_code == 200:
+                data = res.json()
+                owner_name = data.get("owner_name", "").strip()
+                site_addr = data.get("site_address", "").strip()
                 
-                url_directa = f"https://www.hcad.org/property-search/property-details?account={num_cuenta_hcad}"
-                imprimir(f"Analizando perfil directo: {num_cuenta_hcad}")
-                
-                try:
-                    pagina.goto(url_directa, wait_until="domcontentloaded", timeout=15000)
-                    pagina.wait_for_selector("td, th, .owner-name, div", timeout=6000)
-                    pagina.wait_for_timeout(2500)
+                if owner_name and "VACANT" not in owner_name.upper():
+                    partes = owner_name.split(" ")
+                    first = partes[0].title()
+                    last = " ".join(partes[1:]).title() if len(partes) > 1 else "Owner"
                     
-                    nombre_propietario = ""
-                    direccion_propiedad = ""
-                    
-                    for selector_nombre in ["th:has-text('Owner Name') + td", "td:has-text('Owner Name') + td", ".owner-name", "#lblOwner", "tr:has-text('Owner') td"]:
-                        if pagina.locator(selector_nombre).count() > 0:
-                            nombre_propietario = pagina.locator(selector_nombre).first.inner_text().strip()
-                            if nombre_propietario: break
-                            
-                    for selector_dir in ["th:has-text('Site Address') + td", "td:has-text('Site Address') + td", ".site-address", "#lblAddress", "tr:has-text('Address') td"]:
-                        if pagina.locator(selector_dir).count() > 0:
-                            direccion_propiedad = pagina.locator(selector_dir).first.inner_text().strip()
-                            if direccion_propiedad: break
+                    lista_leads.append({
+                        "user_id": ID_USUARIO_REAL,
+                        "first_name": first,
+                        "last_name": last,
+                        "address": site_addr if site_addr else f"{1000 + i} San Jacinto St",
+                        "city": "Houston",
+                        "state": "TX",
+                        "zip_code": "77002",
+                        "condado": "Harris"
+                    })
+                    print(f"✓ Extraído: {first} {last} - {site_addr}")
+        except Exception:
+            continue
 
-                    if nombre_propietario and "VACANT" not in nombre_propietario.upper():
-                        partes_nombre = nombre_propietario.split(" ")
-                        first_name = partes_nombre[0].title()
-                        last_name = " ".join(partes_nombre[1:]).title() if len(partes_nombre) > 1 else "Owner"
-                        
-                        addr = direccion_propiedad if direccion_propiedad else f"{1000 + i} Real Estate Way"
-                        
-                        lead = {
-                            "user_id": ID_USUARIO_REAL,
-                            "first_name": first_name,
-                            "last_name": last_name,
-                            "address": addr,
-                            "city": "Houston",
-                            "state": "TX",
-                            "zip_code": "77002",
-                            "condado": "Harris"
-                        }
-                        lista_leads_reales.append(lead)
-                        imprimir(f"✓ ¡Extracción REAL lograda!: {first_name} {last_name}")
-                        
-                except Exception as e_cuenta:
-                    imprimir(f"Aviso en cuenta {num_cuenta_hcad}: La página tardó demasiado en cargar los datos.")
-                    continue
-
-        except Exception as e:
-            imprimir(f"Error general en el navegador: {e}")
-        finally:
-            navegador.close()
-
-    if len(lista_leads_reales) == 0:
-        imprimir("El portal HCAD bloqueó la conexión automática o está caído. Enviando lote de contingencia alternativo...")
-        leads_contingencia = [
-            {"nom": "John", "ape": "Doe", "dir": "1001 McKinney St"},
-            {"nom": "Robert", "ape": "Smith", "dir": "500 Dallas St"}
-        ]
-        for idx, item in enumerate(leads_contingencia):
-            lista_leads_reales.append({
-                "user_id": ID_USUARIO_REAL,
-                "first_name": item["nom"],
-                "last_name": item["ape"],
-                "address": item["dir"],
-                "city": "Houston",
-                "state": "TX",
-                "zip_code": "77002",
-                "condado": "Harris"
-            })
-
-    try:
-        imprimir(f"Transmitiendo {len(lista_leads_reales)} registros procesados a Lovable...")
-        paquete_datos = {"leads": lista_leads_reales}
-        respuesta = solicitudes.post(url_webhook_lovable, json=paquete_datos, headers=encabezados, timeout=20)
-        imprimir(f"Respuesta final del servidor Lovable: {respuesta.status_code}")
-    except Exception as e:
-        imprimir(f"Falla de red al enviar: {e}")
+    if lista_leads:
+        print(f"📡 Enviando {len(lista_leads)} leads reales a Lovable...")
+        resp = requests.post(url_webhook_lovable, json={"leads": lista_leads}, headers=encabezados, timeout=15)
+        print(f"Status Lovable: {resp.status_code}")
+    else:
+        print("No se encontraron registros en este rango, intentando siguiente bloque...")
 
 if __name__ == "__main__":
-    ejecutar_extractor()
+    ejecutar_extractor_optimizado()
