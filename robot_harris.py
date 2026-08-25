@@ -5,7 +5,7 @@ def ejecutar_extractor_rentcast():
     print("🚀 Iniciando extracción de datos vía RentCast API...")
     
     # Configuración de endpoints
-    API_KEY_RENTCAST = "11474bdd2ab043929287e5ab0e742115"
+    API_KEY_RENTCAST = "11474bdd2ab043929287e5ab0e742115"  
     URL_RENTCAST = "https://api.rentcast.io/v1/properties"
     
     URL_WEBHOOK_LOVABLE = "https://project--543227ce-de86-45d8-b9b6-969bc7396a1c.lovable.app/api/public/leads"
@@ -15,7 +15,6 @@ def ejecutar_extractor_rentcast():
     }
     ID_USUARIO_REAL = "e830958b-53fc-48f5-b8c8-55aafe0e880c"
 
-    # Parámetros de consulta para Harris County / Houston
     params = {
         "state": "TX",
         "city": "Houston",
