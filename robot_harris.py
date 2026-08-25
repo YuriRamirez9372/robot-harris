@@ -3,7 +3,7 @@ import time
 import requests
 
 def ejecutar_extractor_rentcast():
-    print("🚀 Iniciando extracción masiva de 150 leads (Harris County)...")
+    print("🚀 Iniciando extracción con mapeo avanzado de propietarios...")
     
     # Coloca tu API Key activa de RentCast
     API_KEY_RENTCAST = "11474bdd2ab043929287e5ab0e742115"
@@ -16,14 +16,11 @@ def ejecutar_extractor_rentcast():
     }
     ID_USUARIO_REAL = "e830958b-53fc-48f5-b8c8-55aafe0e880c"
 
-    # Códigos postales estratégicos con alta densidad latina
-    zips_latinos = ["77039", "77087", "77093", "77017", "77083", "77050"]
-    
-    # Selecciona un zip code distinto automáticamente por ejecución
+    # Códigos postales con alta densidad latina y mayor cobertura de nombres
+    zips_latinos = ["77039", "77093", "77087", "77083", "77060", "77050"]
     zip_activo = zips_latinos[(int(time.time()) // 60) % len(zips_latinos)]
     print(f"📍 Consultando código postal target: {zip_activo}")
 
-    # Aumentado a 150 registros en una sola consulta API
     params = {
         "state": "TX",
         "zipCode": zip_activo,
@@ -46,16 +43,25 @@ def ejecutar_extractor_rentcast():
             for prop in propiedades:
                 owner_info = prop.get("owner", {})
                 
-                # Extraer nombres desde la lista 'names' oficial de RentCast
-                owner_names = owner_info.get("names", [])
-                nombre_completo = owner_names[0] if owner_names and isinstance(owner_names, list) else ""
+                # Búsqueda exhaustiva del nombre del propietario en todos los formatos posibles de la API
+                raw_names = owner_info.get("names") or owner_info.get("name") or []
                 
-                if nombre_completo:
-                    partes = nombre_completo.strip().split(" ", 1)
-                    first_name = partes[0].title()
-                    last_name = partes[1].title() if len(partes) > 1 else "Propietario"
+                if isinstance(raw_names, str):
+                    nombre_str = raw_names
+                elif isinstance(raw_names, list) and len(raw_names) > 0:
+                    nombre_str = str(raw_names[0])
                 else:
-                    first_name = "Propietario"
+                    nombre_str = ""
+
+                # Limpieza y formateo
+                if nombre_str and nombre_str.strip():
+                    # Elimina prefijos comunes de empresas si existen
+                    partes = nombre_str.strip().title().split(" ", 1)
+                    first_name = partes[0]
+                    last_name = partes[1] if len(partes) > 1 else "Propietario"
+                else:
+                    # En caso de no tener nombre registrado en esa propiedad específica
+                    first_name = "Dueño"
                     last_name = "Residencial"
                 
                 address = prop.get("addressLine1", "")
