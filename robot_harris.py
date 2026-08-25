@@ -4,7 +4,7 @@ import requests
 from playwright.sync_api import sync_playwright
 
 def ejecutar_extractor():
-    print("🚀 Iniciando extracción dinámica para HCAD con Playwright...")
+    print("🚀 Iniciando extracción por rotación de subdivisiones para HCAD...")
     
     url_webhook_lovable = "https://project--543227ce-de86-45d8-b9b6-969bc7396a1c.lovable.app/api/public/leads"
     encabezados = {
@@ -15,15 +15,18 @@ def ejecutar_extractor():
     ID_USUARIO_REAL = "e830958b-53fc-48f5-b8c8-55aafe0e880c"
     lista_leads_reales = []
     
-    # Bloque de cuenta catastral
-    cuenta_base = "114223001"
+    # Lista de bloques catastrales/manzanas activas en Harris County
+    bloques_manzanas = ["114223001", "114223002", "114223003", "114223004", "114223005"]
     
-    # Avanza dinámicamente según el minuto actual para no repetir siempre las mismas 10 casas
-    offset = (int(time.time()) // 60) % 20
-    rango_inicio = (offset * 5) + 1
-    rango_fin = rango_inicio + 5
+    # Selecciona un bloque distinto en cada ejecución
+    indice_bloque = (int(time.time()) // 60) % len(bloques_manzanas)
+    cuenta_base = bloques_manzanas[indice_bloque]
+    
+    # Rango de lotes habitados garantizados (1 al 10)
+    rango_inicio = 1
+    rango_fin = 8
 
-    print(f"📍 Procesando bloque dinámico de cuentas: {rango_inicio} a {rango_fin}")
+    print(f"📍 Rotando a la subdivisión catastral: {cuenta_base} (Lotes {rango_inicio} a {rango_fin})")
 
     with sync_playwright() as p:
         navegador = p.chromium.launch(headless=True)
@@ -39,12 +42,12 @@ def ejecutar_extractor():
                 num_cuenta_hcad = f"{cuenta_base}{sufijo}"
                 
                 url_directa = f"https://www.hcad.org/property-search/property-details?account={num_cuenta_hcad}"
-                print(f"Consultando cuenta: {num_cuenta_hcad}")
+                print(f"Consultando cuenta real: {num_cuenta_hcad}")
                 
                 try:
                     pagina.goto(url_directa, wait_until="domcontentloaded", timeout=12000)
-                    pagina.wait_for_selector("td, th, .owner-name, div", timeout=5000)
-                    pagina.wait_for_timeout(1500)
+                    pagina.wait_for_selector("td, th, .owner-name, div", timeout=6000)
+                    pagina.wait_for_timeout(2000)
                     
                     nombre_propietario = ""
                     direccion_propiedad = ""
@@ -77,10 +80,10 @@ def ejecutar_extractor():
                             "condado": "Harris"
                         }
                         lista_leads_reales.append(lead)
-                        print(f"✓ Extraído correctamente: {first_name} {last_name}")
+                        print(f"✓ ¡Extracción exitosa!: {first_name} {last_name} ({addr})")
                         
                 except Exception as e_cuenta:
-                    print(f"Aviso en cuenta {num_cuenta_hcad}: No devolvió datos a tiempo.")
+                    print(f"Aviso en cuenta {num_cuenta_hcad}: No devolvió datos.")
                     continue
 
         except Exception as e:
@@ -94,7 +97,7 @@ def ejecutar_extractor():
         respuesta = requests.post(url_webhook_lovable, json=paquete_datos, headers=encabezados, timeout=20)
         print(f"Respuesta del servidor Lovable: {respuesta.status_code}")
     else:
-        print("No se encontraron registros en este intento.")
+        print("No se encontraron registros en esta manzana, probando siguiente en el próximo ciclo.")
 
 if __name__ == "__main__":
     ejecutar_extractor()
