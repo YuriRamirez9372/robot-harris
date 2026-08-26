@@ -1,5 +1,5 @@
 import os
-import time
+import csv
 import re
 import requests
 
@@ -10,41 +10,47 @@ REGEX_APELLIDOS_LATINOS = re.compile(
 )
 
 def es_apellido_latino(nombre_completo):
+    """Verifica si el nombre contiene patrones latinos"""
     return bool(REGEX_APELLIDOS_LATINOS.search(nombre_completo))
 
-def extraer_condados_masivo(modo_semanal=False):
+def guardar_csv_por_zip(condado, zip_code, leads):
+    """Crea la estructura de carpetas: archivos_leads/Condado/ZipCode/ y guarda el CSV"""
+    directorio = os.path.join("archivos_leads", condado, str(zip_code))
+    os.makedirs(directorio, exist_ok=True)
+    
+    filepath = os.path.join(directorio, f"leads_{condado}_{zip_code}.csv")
+    
+    # Encabezados limpios listos para importar
+    headers = ["first_name", "last_name", "address", "city", "state", "zip_code", "condado", "purchase_date"]
+    
+    with open(filepath, mode="w", newline="", encoding="utf-8") as file:
+        writer = csv.DictWriter(file, fieldnames=headers)
+        writer.writeheader()
+        writer.writerows(leads)
+        
+    print(f"  📁 File generado: {filepath} ({len(leads)} leads)")
+
+def ejecutar_barrido_rentcast(modo_semanal=False):
     """
-    modo_semanal = False -> Barrido de los últimos 365 días (12 meses)
-    modo_semanal = True  -> Actualización de los últimos 7 días
+    modo_semanal = False -> Barrido histórico inicial (últimos 365 días)
+    modo_semanal = True  -> Actualización semanal continua (últimos 7 días)
     """
     dias_rango = "*:7" if modo_semanal else "*:365"
-    tipo_extraccion = "SEMANAL (últimos 7 días)" if modo_semanal else "BARRIDO COMPLETO (últimos 12 meses)"
-    print(f"🚀 Iniciando Extracción Masiva | Modo: {tipo_extraccion}")
+    tipo = "SEMANAL (7 días)" if modo_semanal else "HISTÓRICO (12 meses)"
+    print(f"🚀 Iniciando Generación de CSVs | Modo: {tipo}\n")
     
-    API_KEY_RENTCAST = "11474bdd2ab043929287e5ab0e742115"
+    API_KEY_RENTCAST = "11474bdd2ab043929287e5ab0e742115"  # Reemplazar por tu clave de RentCast
     URL_RENTCAST = "https://api.rentcast.io/v1/properties"
     
-    URL_WEBHOOK_LOVABLE = "https://project--543227ce-de86-45d8-b9b6-969bc7396a1c.lovable.app/api/public/leads"
-    HEADERS_LOVABLE = {
-        "Content-Type": "application/json",
-        "x-ingest-api-key": "vqpYqSQI5g7YBMvrBZGszxfOWtuYNpwMVyfpNjeDU9V3x_4OrfElT2uVO1kQTMjP"
-    }
-    ID_USUARIO_REAL = "e830958b-53fc-48f5-b8c8-55aafe0e880c"
-
-    # Lista de condados en los alrededores de Houston
+    # 7 Condados del Área Metropolitana de Houston
     CONDADOS = ["Harris", "Fort Bend", "Montgomery", "Brazoria", "Galveston", "Liberty", "Waller"]
-    
-    headers_rentcast = {
-        "X-Api-Key": API_KEY_RENTCAST,
-        "Accept": "application/json"
-    }
-
-    total_leads_enviados = 0
+    headers_rentcast = {"X-Api-Key": API_KEY_RENTCAST, "Accept": "application/json"}
 
     for condado in CONDADOS:
-        print(f"\n📍 Extrayendo Condado: {condado} TX...")
+        print(f"📍 Procesando Condado: {condado} TX...")
         offset = 0
-        limit = 500  # Máximo número de registros permitido por la API por petición
+        limit = 500  # Paginación al máximo de la API
+        leads_por_zip = {}
 
         while True:
             params = {
@@ -58,17 +64,13 @@ def extraer_condados_masivo(modo_semanal=False):
 
             try:
                 res = requests.get(URL_RENTCAST, headers=headers_rentcast, params=params, timeout=40)
-                
                 if res.status_code != 200:
                     print(f"⚠️ Error {res.status_code} en {condado} (offset {offset}): {res.text}")
                     break
 
                 propiedades = res.json()
                 if not propiedades:
-                    print(f"✓ No hay más propiedades en {condado}.")
                     break
-
-                lista_leads = []
 
                 for prop in propiedades:
                     owner_info = prop.get("owner", {})
@@ -81,53 +83,50 @@ def extraer_condados_masivo(modo_semanal=False):
                     else:
                         nombre_str = ""
 
-                    # Filtrado por coincidencia de apellido latino
+                    # Filtrar por apellido latino
                     if nombre_str and nombre_str.strip() and es_apellido_latino(nombre_str):
                         partes = nombre_str.strip().title().split(" ", 1)
                         first_name = partes[0]
                         last_name = partes[1] if len(partes) > 1 else "Propietario"
                         
                         address = prop.get("addressLine1", "")
+                        zip_code = prop.get("zipCode", "Desconocido")
                         last_sale = prop.get("lastSale", {})
                         fecha_compra = last_sale.get("date", "") if last_sale else ""
-                        
+
                         if address:
-                            lista_leads.append({
-                                "user_id": ID_USUARIO_REAL,
+                            lead = {
                                 "first_name": first_name,
                                 "last_name": last_name,
                                 "address": address,
                                 "city": prop.get("city", "Houston"),
                                 "state": prop.get("state", "TX"),
-                                "zip_code": prop.get("zipCode", ""),
+                                "zip_code": zip_code,
                                 "condado": condado,
                                 "purchase_date": fecha_compra
-                            })
+                            }
 
-                # Transmitir bloque recolectado a Lovable
-                if lista_leads:
-                    print(f"📡 Enviando {len(lista_leads)} leads latinos a Lovable (Condado: {condado}, Offset: {offset})...")
-                    resp_webhook = requests.post(URL_WEBHOOK_LOVABLE, json={"leads": lista_leads}, headers=HEADERS_LOVABLE, timeout=30)
-                    total_leads_enviados += len(lista_leads)
+                            if zip_code not in leads_por_zip:
+                                leads_por_zip[zip_code] = []
+                            leads_por_zip[zip_code].append(lead)
 
-                # Control de fin de paginación
                 if len(propiedades) < limit:
-                    print(f"✓ Fin de registros para {condado}.")
                     break
-                
-                # Avanzar offset para la siguiente llamada
                 offset += limit
-                time.sleep(1) # Pausa preventiva para respetar rate limits
 
             except Exception as e:
-                print(f"❌ Error durante la ejecución en {condado}: {e}")
+                print(f"❌ Error durante la extracción de {condado}: {e}")
                 break
 
-    print(f"\n🎉 Extracción finalizada. Total de leads latinos procesados: {total_leads_enviados}")
+        # Guardar en disco los archivos organizados por Zip Code
+        for zip_code, lista_leads in leads_por_zip.items():
+            guardar_csv_por_zip(condado, zip_code, lista_leads)
+            
+        print(f"✓ Condado {condado} completado con éxito.\n")
 
 if __name__ == "__main__":
-    # Para el primer barrido masivo (12 meses):
-    extraer_condados_masivo(modo_semanal=False)
+    # Ejecución 1: Carga Masiva Inicial (12 meses)
+    ejecutar_barrido_rentcast(modo_semanal=False)
 
-    # Para la automatización semanal programada en el cron job, cambiarías a:
-    # extraer_condados_masivo(modo_semanal=True)
+    # Para el Cron Job semanal en Render, cambiar a:
+    # ejecutar_barrido_rentcast(modo_semanal=True)
